@@ -2,7 +2,7 @@
 
 Tiddlylisp is a toy Lisp interpreter, written in Python, and intended
 to accompany the essay
-[Lisp as the Maxwell's equations of software](http://michaelnielsen.org/lisp-as-the-maxwells-equations-of-software/).
+[Lisp as the Maxwell's equations of software](http://michaelnielsen.org/ddi/lisp-as-the-maxwells-equations-of-software/).
 
 The repository contains the following files:
 
@@ -24,5 +24,5 @@ and the essay
 (postscript) by Paul Graham.
 
 See
-[the essay](http://michaelnielsen.org/lisp-as-the-maxwells-equations-of-software/)
+[the essay](http://michaelnielsen.org/ddi/lisp-as-the-maxwells-equations-of-software/)
 for more details.
