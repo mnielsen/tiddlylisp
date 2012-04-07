@@ -1,0 +1,96 @@
+(define caar (lambda (x) (car (car x))))
+(define cadr (lambda (x) (car (cdr x))))
+(define cadar (lambda (x) (cadr (car x))))
+(define caddr (lambda (x) (cadr (cdr x))))
+(define caddar (lambda (x) (caddr (car x))))
+
+(define not (lambda (x) (if x False True)))
+
+(define append (lambda (x y)
+		 (if (null x) y (cons (car x) (append (cdr x) y)))))
+
+(define pair (lambda (x y) (cons x (cons y (q ()) ))))
+
+(define pairlis 
+    (lambda (x y)
+      (if (null x)
+	  (q ())
+	  (cons (pair (car x) (car y)) (pairlis (cdr x) (cdr y))))))
+
+(define assoc (lambda (x y)
+		(if (eq (caar y) x) (cadar y) (assoc x (cdr y)))))
+
+(define eval 
+    (lambda (e a)
+      (cond
+	((atom e) (assoc e a))
+	((atom (car e))
+	 (cond
+	   ((eq (car e) (q car))   (car (eval (cadr e) a)))
+	   ((eq (car e) (q cdr))   (cdr (eval (cadr e) a)))
+	   ((eq (car e) (q cons))  (cons (eval (cadr e) a) (eval (caddr e) a)))
+	   ((eq (car e) (q atom))  (atom (eval (cadr e) a)))
+	   ((eq (car e) (q eq))    (eq (eval (cadr e) a) (eval (caddr e) a)))
+	   ((eq (car e) (q quote)) (cadr e))
+	   ((eq (car e) (q q))     (cadr e))
+	   ((eq (car e) (q cond))  (evcon (cdr e) a))
+	   (True                   (eval (cons (assoc (car e) a) (cdr e)) a))))
+	((eq (caar e) (q lambda))
+	 (eval (caddar e) (append (pairlis (cadar e) (evlis (cdr e) a)) a))))))
+
+(define evcon 
+    (lambda (c a)
+      (cond ((eval (caar c) a) (eval (cadar c) a))
+	    (True              (evcon (cdr c) a)))))
+
+(define evlis 
+    (lambda (m a)
+      (cond ((null m) (q ()))
+	    (True     (cons (eval (car m) a) (evlis (cdr m) a))))))
+
+
+(define assert-equal (lambda (x y) (= x y)))
+
+(define assert-not-equal (lambda (x y) (not (assert-equal x y))))
+
+(assert-equal (eval (q x) (q ((x test-value))))
+	      (q test-value))
+(assert-equal (eval (q y) (q ((y (1 2 3)))))
+	      (q (1 2 3)))
+(assert-not-equal (eval (q z) (q ((z ((1) 2 3)))))
+		  (q (1 2 3)))
+(assert-equal (eval (q (quote 7)) (q ()))
+	      (q 7))
+(assert-equal (eval (q (atom (q (1 2)))) (q ()))
+	      False)
+(assert-equal (eval (q (eq 1 1)) (q ((1 1))))
+	      True)
+(assert-equal (eval (q (eq 1 2)) (q ((1 1) (2 2))))
+	      False)
+(assert-equal (eval (q (eq 1 1)) (q ((1 1))))
+	      True)
+(assert-equal (eval (q (car (q (3 2)))) (q ()))
+	      (q 3))
+(assert-equal (eval (q (cdr (q (1 2 3)))) (q ()))
+	      (q (2 3)))
+(assert-not-equal (eval (q (cdr (q (1 (2 3) 4)))) (q ()))
+		  (q (2 3 4)))
+(assert-equal (eval (q (cons 1 (q (2 3)))) (q ((1 1)(2 2)(3 3))))
+	      (q (1 2 3)))
+(assert-equal (eval (q (cond ((atom x) (q x-atomic)) 
+			     ((atom y) (q y-atomic)) 
+			     ((q True) (q nonatomic)))) 
+		    (q ((x 1)(y (3 4)))))
+	      (q x-atomic))
+(assert-equal (eval (q (cond ((atom x) (q x-atomic)) 
+			     ((atom y) (q y-atomic)) 
+			     ((q True) (q nonatomic)))) 
+		    (q ((x (1 2))(y 3))))
+	      (q y-atomic))
+(assert-equal (eval (q (cond ((atom x) (q x-atomic)) 
+			     ((atom y) (q y-atomic)) 
+			     ((q True) (q nonatomic)))) 
+		    (q ((x (1 2))(y (3 4)))))
+	      (q nonatomic))
+(assert-equal (eval (q ((lambda (x) (car (cdr x))) (q (1 2 3 4)))) (q ()))
+	      2)
