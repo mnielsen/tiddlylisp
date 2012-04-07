@@ -17,7 +17,11 @@ by Harold Abelson and Gerald Jay Sussman with Julie Sussmann.
 
 `eval.tl`: A tiddylisp program defining a function `eval` which can
 evaluate any Lisp expression, albeit, for an even smaller subset of
-Lisp than tiddlylisp.
+Lisp than tiddlylisp.  Based on the
+[LISP 1.5 Programmer's Manual](http://www.softwarepreservation.org/projects/LISP/book/LISP%201.5%20Programmers%20Manual.pdf)
+and the essay
+[The Roots of Lisp](http://lib.store.yahoo.net/lib/paulgraham/jmc.ps)
+(postscript) by Paul Graham.
 
 See
 [the essay](http://michaelnielsen.org/lisp-as-the-maxwells-equations-of-software/)
