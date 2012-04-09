@@ -56,10 +56,10 @@ def eval(x, env=global_env):
     elif x[0] == 'quote' or x[0] == 'q': # (quote exp), or (q exp)
         (_, exp) = x
         return exp
-    elif x[0] == 'atom':            # (atom exp)
+    elif x[0] == 'atom?':           # (atom? exp)
         (_, exp) = x
         return not isa(eval(exp, env), list)
-    elif x[0] == 'eq':              # (eq exp1 exp2)
+    elif x[0] == 'eq?':             # (eq? exp1 exp2)
         (_, exp1, exp2) = x
         v1, v2 = eval(exp1, env), eval(exp2, env)
         return (not isa(v1, list)) and (v1 == v2)
@@ -108,7 +108,7 @@ def parse(s):
 
 def tokenize(s):
     "Convert a string into a list of tokens."
-    return s.replace('(',' ( ').replace(')',' ) ').split()
+    return s.replace("(", " ( ").replace(")", " ) ").split()
 
 def read_from(tokens):
     "Read an expression from a sequence of tokens."
