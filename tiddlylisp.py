@@ -25,7 +25,7 @@ class Env(dict):
         return self if var in self else self.outer.find(var)
 
 def add_globals(env):
-    "Add some built-in functions and variables to the environment."
+    "Add some built-in procedures and variables to the environment."
     import operator
     env.update(
         {'+': lambda *args: sum(args), 
