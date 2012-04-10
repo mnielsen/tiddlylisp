@@ -28,7 +28,7 @@ def add_globals(env):
     "Add some built-in procedures and variables to the environment."
     import operator
     env.update(
-        {'+': lambda *args: sum(args), 
+        {'+': operator.add,
          '-': operator.sub, 
          '*': operator.mul, 
          '/': operator.div, 
@@ -76,7 +76,7 @@ def eval(x, env=global_env):
         for (p, e) in x[1:]:
             if eval(p, env): 
                 return eval(e, env)
-    elif x[0] == 'null':            # (null exp)
+    elif x[0] == 'null?':           # (null? exp)
         (_, exp) = x
         return eval(exp,env) == []
     elif x[0] == 'if':              # (if test conseq alt)

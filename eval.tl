@@ -7,13 +7,13 @@
 (define not (lambda (x) (if x False True)))
 
 (define append (lambda (x y)
-		 (if (null x) y (cons (car x) (append (cdr x) y)))))
+		 (if (null? x) y (cons (car x) (append (cdr x) y)))))
 
 (define pair (lambda (x y) (cons x (cons y (q ()) ))))
 
 (define pairlis 
     (lambda (x y)
-      (if (null x)
+      (if (null? x)
 	  (q ())
 	  (cons (pair (car x) (car y)) (pairlis (cdr x) (cdr y))))))
 
@@ -45,7 +45,7 @@
 
 (define evlis 
     (lambda (m a)
-      (cond ((null m) (q ()))
+      (cond ((null? m) (q ()))
 	    (True     (cons (eval (car m) a) (evlis (cdr m) a))))))
 
 
