@@ -95,10 +95,10 @@ def eval(x, env=global_env):
         for exp in x[1:]:
             val = eval(exp, env)
         return val
-    else:                           # (fn exp*)
+    else:                           # (proc exp*)
         exps = [eval(exp, env) for exp in x]
-        fn = exps.pop(0)
-        return fn(*exps)
+        proc = exps.pop(0)
+        return proc(*exps)
 
 #### parsing
 
