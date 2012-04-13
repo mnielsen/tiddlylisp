@@ -196,7 +196,7 @@ def repl(prompt='tiddlylisp> '):
             if val is not None: print to_string(val)
         except KeyboardInterrupt:
             print "\nExiting tiddlylisp\n"
-            exit()
+            sys.exit()
         except:
             handle_error()
 
