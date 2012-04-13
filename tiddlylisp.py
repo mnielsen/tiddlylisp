@@ -8,42 +8,52 @@
 
 import sys
 import traceback
+import operator
 
 #### Symbol, Env classes
 
 Symbol = str
+isa = isinstance
 
 class Env(dict):
     "An environment: a dict of {'var':val} pairs, with an outer Env."
-
-    def __init__(self, params=(), args=(), outer=None):
-        self.update(zip(params, args))
+    def __init__(self, bindings={}, outer=None):
+        self.update(bindings)
         self.outer = outer
 
     def find(self, var):
         "Find the innermost Env where var appears."
-        return self if var in self else self.outer.find(var)
+        if var in self:
+            return self
+        elif not self.outer is None:
+            return self.outer.find(var)
+        else: raise ValueError("%s is not defined"%(var,))
 
-def add_globals(env):
-    "Add some built-in procedures and variables to the environment."
-    import operator
-    env.update(
-        {'+': operator.add,
-         '-': operator.sub, 
-         '*': operator.mul, 
-         '/': operator.div, 
-         '>': operator.gt, 
-         '<': operator.lt, 
-         '>=': operator.ge, 
-         '<=': operator.le, 
-         '=': operator.eq
-         })
-    env.update({'True': True, 'False': False})
-    return env
-
-global_env = add_globals(Env())
-
-isa = isinstance
+global_env = Env({
+    '+':    operator.add,
+    '-':    operator.sub,
+    '*':    operator.mul,
+    '/':    operator.div,
+    '>':    operator.gt,
+    '<':    operator.lt,
+    '>=':   operator.ge,
+    '<=':   operator.le,
+    '=':    operator.eq,
+    'eq?':    lambda x,y:(not isa(x, list)) and (x == y),
+    'cons':   lambda x,y:[x]+y,
+    'car':    lambda x:x[0],
+    'cdr':    lambda x:x[1:],
+    'list':   lambda *x:list(x),
+    'append':operator.add,
+    'len':    len,
+    'null?':    lambda x:x==[],
+    'symbol?':  lambda x:isa(x,Symbol),
+    'list?':    lambda x:isa(x,list),
+    'atom?':    lambda x:not isa(x, list),
+    'exit': exit,
+    'True': True,
+    'False': False
+})
 
 #### eval
 
@@ -52,36 +62,18 @@ def eval(x, env=global_env):
     if isa(x, Symbol):              # variable reference
         return env.find(x)[x]
     elif not isa(x, list):          # constant literal
-        return x                
+        return x
     elif x[0] == 'quote' or x[0] == 'q': # (quote exp), or (q exp)
         (_, exp) = x
         return exp
-    elif x[0] == 'atom?':           # (atom? exp)
-        (_, exp) = x
-        return not isa(eval(exp, env), list)
-    elif x[0] == 'eq?':             # (eq? exp1 exp2)
-        (_, exp1, exp2) = x
-        v1, v2 = eval(exp1, env), eval(exp2, env)
-        return (not isa(v1, list)) and (v1 == v2)
-    elif x[0] == 'car':             # (car exp)
-        (_, exp) = x
-        return eval(exp, env)[0]
-    elif x[0] == 'cdr':             # (cdr exp)
-        (_, exp) = x
-        return eval(exp, env)[1:]
-    elif x[0] == 'cons':            # (cons exp1 exp2)
-        (_, exp1, exp2) = x
-        return [eval(exp1, env)]+eval(exp2,env)
-    elif x[0] == 'cond':            # (cond (p1 e1) ... (pn en))
-        for (p, e) in x[1:]:
-            if eval(p, env): 
-                return eval(e, env)
-    elif x[0] == 'null?':           # (null? exp)
-        (_, exp) = x
-        return eval(exp,env) == []
     elif x[0] == 'if':              # (if test conseq alt)
         (_, test, conseq, alt) = x
         return eval((conseq if eval(test, env) else alt), env)
+    elif x[0] == 'cond':            # (cond (p1 e1) ... (pn en))
+        for (p, e) in x[1:]:
+            if eval(p, env):
+                return eval(e, env)
+        raise ValueError("No Branch Evaluates to True")
     elif x[0] == 'set!':            # (set! var exp)
         (_, var, exp) = x
         env.find(var)[var] = eval(exp, env)
@@ -90,7 +82,7 @@ def eval(x, env=global_env):
         env[var] = eval(exp, env)
     elif x[0] == 'lambda':          # (lambda (var*) exp)
         (_, vars, exp) = x
-        return lambda *args: eval(exp, Env(vars, args, env))
+        return lambda *args: eval(exp, Env(zip(vars, args), env))
     elif x[0] == 'begin':           # (begin exp*)
         for exp in x[1:]:
             val = eval(exp, env)
@@ -98,17 +90,18 @@ def eval(x, env=global_env):
     else:                           # (proc exp*)
         exps = [eval(exp, env) for exp in x]
         proc = exps.pop(0)
-        return proc(*exps)
+        if hasattr(proc, '__call__'): return proc(*exps)
+        else: raise ValueError("%s is not a procedure" % (to_string(x[0]),))
 
 #### parsing
-
-def parse(s):
-    "Parse a Lisp expression from a string."
-    return read_from(tokenize(s))
 
 def tokenize(s):
     "Convert a string into a list of tokens."
     return s.replace("(", " ( ").replace(")", " ) ").split()
+
+def parse(tokens):
+    "Parse a Lisp expression from a string."
+    return read_from(tokens)
 
 def read_from(tokens):
     "Read an expression from a sequence of tokens."
@@ -139,7 +132,7 @@ def to_string(exp):
     if not isa(exp, list):
         return str(exp)
     else:
-        return '('+' '.join(map(to_string, exp))+')'         
+        return '('+' '.join(map(to_string, exp))+')'
 
 #### Load from a file and run
 
@@ -152,53 +145,57 @@ def load(filename):
     match.
     """
     print "Loading and executing %s" % filename
-    f = open(filename, "r")
-    program = f.readlines()
-    f.close()
-    rps = running_paren_sums(program)
+    rps = 0
     full_line = ""
-    for (paren_sum, program_line) in zip(rps, program):
-        program_line = program_line.strip()
-        full_line += program_line+" "
-        if paren_sum == 0 and full_line.strip() != "":
+    for line in open(filename, "r"):
+        line = line.strip()
+        full_line += line
+        rps += line.count("(")-line.count(")")
+        if rps == 0 and full_line.strip() != "":
             try:
-                val = eval(parse(full_line))
-                if val is not None: print to_string(val)
+                tokens = tokenize(full_line)
+                while len(tokens) > 0:
+                    val = eval(parse(tokens))
+                    if val is not None: print to_string(val)
+            except SystemExit:
+                exit()
             except:
                 handle_error()
                 print "\nThe line in which the error occurred:\n%s" % full_line
                 break
             full_line = ""
-    repl()
-
-def running_paren_sums(program):
-    """
-    Map the lines in the list program to a list whose entries contain
-    a running sum of the per-line difference between the number of '('
-    parentheses and the number of ')' parentheses.
-    """
-    count_open_parens = lambda line: line.count("(")-line.count(")")
-    paren_counts = map(count_open_parens, program)
-    rps = []
-    total = 0
-    for paren_count in paren_counts:
-        total += paren_count
-        rps.append(total)
-    return rps
 
 #### repl
 
 def repl(prompt='tiddlylisp> '):
-    "A prompt-read-eval-print loop."
-    while True:
-        try:
-            val = eval(parse(raw_input(prompt)))
-            if val is not None: print to_string(val)
-        except KeyboardInterrupt:
-            print "\nExiting tiddlylisp\n"
-            exit()
-        except:
-            handle_error()
+    """
+    A prompt-read-eval-print loop.
+    """
+    try:
+        while True:
+            full_line = raw_input(prompt)
+            rps = full_line.count("(")-full_line.count(")")
+            while rps != 0 or full_line == "":
+                line = raw_input(">\t")
+                full_line += line
+                rps += line.count("(")-line.count(")")
+            try:
+                tokens = tokenize(full_line)
+                while len(tokens) > 0:
+                    val = eval(parse(tokens))
+                    if val is not None: print to_string(val)
+            except (KeyboardInterrupt, SystemExit) as e:
+                raise e
+            except ValueError as e:
+                print e.message
+            except:
+                handle_error()
+    except (KeyboardInterrupt, SystemExit):
+        print "\nExiting tiddlylisp\n"
+    except:
+        print "\nFatal Error\n"
+        traceback.print_exc()
+    exit()
 
 #### error handling
 
@@ -212,7 +209,6 @@ def handle_error():
 #### on startup from the command line
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1: 
+    if len(sys.argv) > 1:
         load(sys.argv[1])
-    else: 
-        repl()
+    repl()
