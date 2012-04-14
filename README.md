@@ -10,6 +10,11 @@ The repository contains the following files:
 Tiddlylisp is adapted from and closely based on Peter Norvig's
 [lispy interpreter](http://norvig.com/lispy.html).
 
+`tiddlyvau.py`: A modification of the interpreter that uses vau expressions to move all built-in functions and syntactic forms out of the eval function.
+[lispy interpreter](http://norvig.com/lispy.html).
+
+`tiddlyparser.py`: A shared module for parsing s-expressions.
+
 `sqrt.tl`: An example tiddlylisp program, for computing square roots.
 Adapted from an example in the book
 [The Structure and Interpretation of Computer Programs](http://mitpress.mit.edu/sicp/),
