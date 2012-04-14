@@ -16,6 +16,14 @@ class Env(dict):
 		self.update(bindings)
 		self.outer = outer
 
+	def __getitem__(self, var):
+		loc = self.find(var)
+		val = super(Env,loc).__getitem__(var)
+		if isa(val, Deferral):
+			val = eval(val.expr, val.env)
+			loc[var] = val
+		return val
+
 	def find(self, var):
 		"Find the innermost Env where var appears."
 		if var in self:
@@ -24,99 +32,95 @@ class Env(dict):
 			return self.outer.find(var)
 		else: raise ValueError("%s is not defined"%(var,))
 
-class Vau():
-	def __init__(self, body, vars, call_env_sym, clos_env):
-		self.body = body
-		self.vars = vars
-		self.vars.append(call_env_sym)
-		self.env = clos_env
+class Deferral():
+	def __init__(self, expr, env):
+		self.expr = expr
+		self.env = env
 
-	def __call__(self, *args, **kwargs):
-		args.append(kwargs['v'])
-		return eval(self.body, Env(zip(self.vars, args), self.env))
-		
-def define(var,exp,v=Env()):
-	val = eval(exp, v)
-	v[var] = val
+def define(var,exp):
+	val = eval(exp)
+	if not isa(var.expr, Symbol):
+		raise Exception("Invalid Symbol %s" % (var.expr,))
+	exp.env[var.expr] = val
 	return val
 	
-def set(var, exp, v=Env()):
-	val = eval(exp, v)
+def setvar(var, exp):
+	val = eval(exp)
 	env.find(var)[var] = val
 	return val
 
-def quote(exp,v=Env()): return exp
+def quote(exp): return exp.expr
 
-def cond(*x,**k):
-	env = k['v']
-	for (p, e) in x:
-		if eval(p, env):
-			return eval(e, env)
+def cond(*x):
+	for clause in x:
+		(p, e) = clause.expr
+		if eval(p,clause.env):
+			return eval(e,clause.env)
 	raise ValueError("No Branch Evaluates to True")
 
-def begin(*x,**k):
-	env = k['v']
+def begin(*x):
 	val = 0
 	for exp in x:
-		val = eval(exp, env)
+		val = eval(exp)
 	return val
 	
-def vprint(x,v=Env()):
-	val = eval(x, v)
+def vprint(x):
+	val = eval(x)
 	print to_string(val)
 	return val
 	
 global_env = Env({
-	'+':	lambda x,y,v=Env():eval(x,v)+eval(y,v),
-	'-':	lambda x,y,v=Env():eval(x,v)-eval(y,v),
-	'*':	lambda x,y,v=Env():eval(x,v)*eval(y,v),
-	'/':	lambda x,y,v=Env():eval(x,v)/eval(y,v),
-	'>':	lambda x,y,v=Env():eval(x,v)>eval(y,v),
-	'<':	lambda x,y,v=Env():eval(x,v)<eval(y,v),
-	'>=':	lambda x,y,v=Env():eval(x,v)>=eval(y,v),
-	'<=':	lambda x,y,v=Env():eval(x,v)<=eval(y,v),
-	'=':	lambda x,y,v=Env():eval(x,v)==eval(y,v),
-	'eq?':	lambda x,y,v=Env():
-				(lambda vx,vy: (not isa(vx, list)) and (vx == vy))(eval(x,v),eval(y,v)),
-	'cons':	lambda x,y,v=Env():[eval(x,v)]+eval(y,v),
-	'car':	lambda x,v=Env():eval(x,v)[0],
-	'cdr':	lambda x,v=Env():eval(x,v)[1:],
-	'list':	lambda *x,**k:[eval(expr, k['v']) for exp in x],
-	'append':	lambda x,y,v=Env():eval(x,v)+eval(y,v),
-	'len':	lambda x,v=Env():len(eval(x,v)),
-	'null?':	lambda x,v=Env():eval(x,v)==[],
-	'symbol?':	lambda x,v=Env():isa(eval(x,v),Symbol),
-	'list?':	lambda x,v=Env():isa(eval(x,v),list),
-	'atom?':	lambda x,v=Env():not isa(eval(x,v), list),
-	'exit':		lambda v=Env:exit(),
+	'+':	lambda x,y:eval(x)+eval(y),
+	'-':	lambda x,y:eval(x)-eval(y),
+	'*':	lambda x,y:eval(x)*eval(y),
+	'/':	lambda x,y:eval(x)/eval(y),
+	'>':	lambda x,y:eval(x)>eval(y),
+	'<':	lambda x,y:eval(x)<eval(y),
+	'>=':	lambda x,y:eval(x)>=eval(y),
+	'<=':	lambda x,y:eval(x)<=eval(y),
+	'=':	lambda x,y:eval(x)==eval(y),
+	'eq?':	lambda x,y:
+				(lambda vx,vy: (not isa(vx, list)) and (vx == vy))(eval(x),eval(y)),
+	'cons':	lambda x,y:[eval(x)]+eval(y),
+	'car':	lambda x:eval(x)[0],
+	'cdr':	lambda x:eval(x)[1:],
+	'list':	lambda *x:[eval(exp) for exp in x],
+	'append':	lambda x,y:eval(x)+eval(y),
+	'len':	lambda x:len(eval(x)),
+	'null?':	lambda x:eval(x)==[],
+	'symbol?':	lambda x:isa(eval(x),Symbol),
+	'list?':	lambda x:isa(eval(x),list),
+	'atom?':	lambda x:not isa(eval(x), list),
+	'exit':		lambda:exit(),
 	'True':		True,
 	'False':	False,
-	'if':		lambda test,conseq,alt,v=Env(): eval((conseq if eval(test,v) else alt), v),
+	'if':		lambda test,conseq,alt: eval((conseq if eval(test) else alt)),
 	'cond':		cond,
 	'define':	define,
-	'set!':		set,
-	'lambda':	lambda vars, body, v=Env():
-					(lambda *args, **kwargs: eval(body, Env(zip(vars, [eval(exp, kwargs['v']) for exp in args]), v))),
-	'vau':		lambda vars, env, body, v=Env(): Vau(body, vars, env, v),
+	'set!':		setvar,
+	'lambda':	lambda vars, body:
+					(lambda *args: eval(body.expr, Env(zip(vars.expr, args), body.env))),
 	'q': quote,
 	'quote': quote,
 	'begin': begin,
 	'print': vprint,
-	'eval': lambda x,e,v=Env(): eval(x,e)
+	'eval': lambda x,e: eval(x,e)
 })
 
 #### eval
 
 def eval(x, env=global_env):
 	"Evaluate an expression in an environment."
-	val = x
 	if isa(x, Symbol):			  # variable reference
-		val = env.find(x)[x]
-	elif isa(x, list):		  # (proc exp*)
+		return env.find(x)[x]
+	if isa(x, Deferral):
+		return eval(x.expr, x.env)
+	if isa(x, list):		  # (proc exp*)
 		proc = eval(x[0], env)
-		if hasattr(proc, '__call__'): val = proc(*x[1:],v=env)
+		args = [Deferral(expr,env) for expr in x[1:]]
+		if hasattr(proc, '__call__'): return proc(*args)
 		else: raise ValueError("%s = %s is not a procedure" % (to_string(x[0]),to_string(proc)))
-	return val
+	return x
 
 #### Load from a file and run
 
