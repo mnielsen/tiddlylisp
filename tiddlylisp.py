@@ -17,7 +17,7 @@ Symbol = str
 isa = isinstance
 
 class Env(dict):
-    "An environment: a dict of {'var':val} pairs, with an outer Env."
+	"An environment: a dict of {'var':val} pairs, with an outer Env."
 	def __init__(self, bindings={}, outer=None):
 		self.update(bindings)
 		self.outer = outer
