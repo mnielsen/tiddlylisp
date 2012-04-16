@@ -26,3 +26,7 @@ and the essay
 See
 [the essay](http://michaelnielsen.org/ddi/lisp-as-the-maxwells-equations-of-software/)
 for more details.
+
+Notifications of bugs (and bug fixes) are welcome, but I am not adding
+new features to tiddlylisp, as its main purpose is as a complement to
+the essay.
