@@ -31,7 +31,7 @@ def add_globals(env):
         {'+': operator.add,
          '-': operator.sub, 
          '*': operator.mul, 
-         '/': operator.div, 
+         '/': operator.truediv,
          '>': operator.gt, 
          '<': operator.lt, 
          '>=': operator.ge, 
