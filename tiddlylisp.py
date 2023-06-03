@@ -17,7 +17,7 @@ class Env(dict):
     "An environment: a dict of {'var':val} pairs, with an outer Env."
 
     def __init__(self, params=(), args=(), outer=None):
-        self.update(zip(params, args))
+        self.update(list(zip(params, args)))
         self.outer = outer
 
     def find(self, var):
@@ -31,7 +31,7 @@ def add_globals(env):
         {'+': operator.add,
          '-': operator.sub, 
          '*': operator.mul, 
-         '/': operator.div, 
+         '/': operator.truediv,
          '>': operator.gt, 
          '<': operator.lt, 
          '>=': operator.ge, 
@@ -151,7 +151,7 @@ def load(filename):
     merging lines until the number of opening and closing parentheses
     match.
     """
-    print "Loading and executing %s" % filename
+    print("Loading and executing %s" % filename)
     f = open(filename, "r")
     program = f.readlines()
     f.close()
@@ -163,10 +163,10 @@ def load(filename):
         if paren_sum == 0 and full_line.strip() != "":
             try:
                 val = eval(parse(full_line))
-                if val is not None: print to_string(val)
+                if val is not None: print(to_string(val))
             except:
                 handle_error()
-                print "\nThe line in which the error occurred:\n%s" % full_line
+                print("\nThe line in which the error occurred:\n%s" % full_line)
                 break
             full_line = ""
     repl()
@@ -178,7 +178,7 @@ def running_paren_sums(program):
     parentheses and the number of ')' parentheses.
     """
     count_open_parens = lambda line: line.count("(")-line.count(")")
-    paren_counts = map(count_open_parens, program)
+    paren_counts = list(map(count_open_parens, program))
     rps = []
     total = 0
     for paren_count in paren_counts:
@@ -192,10 +192,10 @@ def repl(prompt='tiddlylisp> '):
     "A prompt-read-eval-print loop."
     while True:
         try:
-            val = eval(parse(raw_input(prompt)))
-            if val is not None: print to_string(val)
+            val = eval(parse(input(prompt)))
+            if val is not None: print(to_string(val))
         except KeyboardInterrupt:
-            print "\nExiting tiddlylisp\n"
+            print("\nExiting tiddlylisp\n")
             sys.exit()
         except:
             handle_error()
@@ -206,7 +206,7 @@ def handle_error():
     """
     Simple error handling for both the repl and load.
     """
-    print "An error occurred.  Here's the Python stack trace:\n"
+    print("An error occurred.  Here's the Python stack trace:\n")
     traceback.print_exc()
 
 #### on startup from the command line
