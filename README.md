@@ -30,3 +30,5 @@ for more details.
 Notifications of bugs (and bug fixes) are welcome, but I am not adding
 new features to tiddlylisp, as its main purpose is as a complement to
 the essay.
+
+Note added (June 3, 2023): Switched to Python 3.
